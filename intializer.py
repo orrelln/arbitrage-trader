@@ -35,8 +35,12 @@ def create_directories(exchanges):
         os.mkdir('data/pairs')
     for exchange in exchanges:
         path = 'data/' + exchange.id
+        path2 = 'logs/' + exchange.id + '.log'
         if not os.path.exists(path):
             os.mkdir(path)
+        if not os.path.exists(path2):
+            open(path2, 'a').close()
+
 
 
 
