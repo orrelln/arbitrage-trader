@@ -12,7 +12,7 @@ def main():
     iteration = 0
     with open('data/pairs/intra_pairs.p', 'rb') as f:
         intra_pairs = pickle.load(f)
-    exchange = init_exchange('bittrex')
+    exchange = init_exchange(argv[1])
     while True:
         endtime = time() + 60
         iteration += 1
@@ -28,7 +28,6 @@ def main():
 
 
 def write_tickers(exchange, symbols):
-    value = 1/0
     if exchange.id == 'bitfinex' or exchange.id == 'gdax' or exchange.id == 'bitstamp':
         for s in symbols:
             ind_ticker = exchange.fetch_ticker(s)
