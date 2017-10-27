@@ -1,10 +1,6 @@
 import ccxt
 import pickle
 import json
-import os
-from twisted.internet import task
-from twisted.internet import reactor
-
 from time import time, sleep
 from sys import argv
 
@@ -13,7 +9,7 @@ def main():
     iteration = 0
     with open('data/pairs/intra_pairs.p', 'rb') as f:
         intra_pairs = pickle.load(f)
-    exchange = init_exchange('bittrex')
+    exchange = init_exchange(argv[1])
     while True:
         endtime = time() + 60
         iteration += 1
