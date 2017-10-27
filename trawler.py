@@ -18,7 +18,6 @@ def main():
         endtime = time() + 60
         iteration += 1
         try:
-            print(iteration)
             write_tickers(exchange, intra_pairs[exchange.id])
         except Exception:
             file_name = 'log/' + exchange.id
