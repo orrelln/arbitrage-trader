@@ -2,29 +2,32 @@ import ccxt
 import pickle
 import json
 import os
-import sched
-import time
+from twisted.internet import task
+from twisted.internet import reactor
+
+from time import time, sleep
 from sys import argv
 
 
 def main():
-   # s = sched.scheduler(time.time, time.sleep)
+    iteration = 0
     with open('data/pairs/intra_pairs.p', 'rb') as f:
         intra_pairs = pickle.load(f)
-    start_time = time.time()
-    if len(argv) == 1:
-        exchanges = init_exchanges()
-        for exchange in exchanges:
+    exchange = init_exchange('bittrex')
+    while True:
+        endtime = time() + 60
+        iteration += 1
+        try:
+            print(iteration)
             write_tickers(exchange, intra_pairs[exchange.id])
-    else:
-        exchange = init_exchange(argv[1])
-        write_tickers(exchange, intra_pairs[exchange.id])
-    print(time.time() - start_time)
-
-
-def write_parent(intra_pairs, exchanges):
-    for exchanges in exchanges:
-        write_tickers(exchanges, intra_pairs[exchanges.id])
+        except Exception:
+            file_name = 'log/' + exchange.id
+            with open(file_name, 'a') as f:
+                f.write(str(time()) + ' ' + str(iteration))
+                f.write(str(Exception))
+                f.write('\n')
+        while endtime > time():
+            sleep(1)
 
 
 def write_tickers(exchange, symbols):

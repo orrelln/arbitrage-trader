@@ -28,6 +28,8 @@ def format_pair(pair):
 
 
 def create_directories(exchanges):
+    if not os.path.exists('logs'):
+        os.mkdir('logs')
     if not os.path.exists('data'):
         os.mkdir('data')
         os.mkdir('data/pairs')
