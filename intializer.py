@@ -33,6 +33,8 @@ def create_directories(exchanges):
     if not os.path.exists('data'):
         os.mkdir('data')
         os.mkdir('data/pairs')
+    if not os.path.exists('locks'):
+        os.mkdir('locks')
     for exchange in exchanges:
         path = 'data/' + exchange.id
         path2 = 'logs/' + exchange.id + '.log'
@@ -40,8 +42,6 @@ def create_directories(exchanges):
             os.mkdir(path)
         if not os.path.exists(path2):
             open(path2, 'a').close()
-
-
 
 
 def init_symbols(intra_pairs, inter_pairs, exchange_pairs):
@@ -60,13 +60,16 @@ def init_symbols(intra_pairs, inter_pairs, exchange_pairs):
                 intra_pairs[p[1].id].append(s)
 
 
-
-def get_common_symbols(a, b, ):
-    a = a.symbols
-    b = b.symbols
+def get_common_symbols(ex1, ex2):
+    a = ex1.symbols
+    b = ex2.symbols
     both_list = []
     for x in a:
+        if blacklist(x, ex1.id):
+            continue
         for y in b:
+            if blacklist(y, ex2.id):
+                continue
             if x == y:
                 if 'EUR' in x or 'GBP' in x:
                     break
@@ -91,6 +94,14 @@ def init_exchanges():
         exchange.load_markets()
         exchanges.append(exchange)
     return exchanges
+
+
+def blacklist(sym, id):
+    str = id + ':' + sym
+    return {
+        'bittrex:BTS/BTC': True,
+        'poloniex:XVC/BTC': True
+    }.get(str, False)
 
 
 if __name__ == '__main__':
