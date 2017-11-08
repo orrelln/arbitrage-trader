@@ -7,41 +7,65 @@ from intializer import init_exchanges, all_pairs
 from trawler import format_pair
 import json
 import tailer
-import sys
+from time import time, sleep, strftime, gmtime
 
 
 def main():
     tickers = {}
     exchanges = init_exchanges()
     exchange_pairs = all_pairs(exchanges)
+    iteration = 0
     with open('data/pairs/inter_pairs.p', 'rb') as f:
         inter_pairs = pickle.load(f)
     with open('data/pairs/intra_pairs.p', 'rb') as f:
         intra_pairs = pickle.load(f)
-    for exchange in exchanges:
-        get_tickers(tickers, exchange.id, intra_pairs[exchange.id])
-    for pair in exchange_pairs:
-        key = (pair[0].id, pair[1].id)
-        symbols = inter_pairs[key]
-        for symbol in symbols:
-            if 'USD' in symbol:
-                continue
-            key1 = (pair[0].id, symbol)
-            key2 = (pair[1].id, symbol)
-            if tickers[key1]['ask'] == 0.0 or tickers[key1]['bid'] == 0.0 or tickers[key2]['ask'] == 0.0 or tickers[key2]['bid'] == 0.0:
-                continue
-            arb_1 = (tickers[key1]['bid']/tickers[key2]['ask'])*taker_fee(pair[0].id)*taker_fee(pair[1].id) - 1
-            if arb_1 > 0:
-                cur_amt = convert_usd(tickers, pair[1].id, symbol, 100, 'from')
-                arb_made = make_trade(tickers, pair[1].id, pair[0].id, symbol, cur_amt)
-                usd_made = convert_usd(tickers, pair[1].id, symbol, arb_made, 'to')
-                print('buy on ' + pair[1].id + ' sell on ' + pair[0].id + ' ' + symbol + ' ' + str(arb_1) + ' end with $' + str(usd_made))
-            arb_2 = (tickers[key2]['bid']/tickers[key1]['ask'])*taker_fee(pair[0].id)*taker_fee(pair[1].id) - 1
-            if arb_2 > 0:
-                cur_amt = convert_usd(tickers, pair[0].id, symbol, 100, 'from')
-                arb_made = make_trade(tickers, pair[0].id, pair[1].id, symbol, cur_amt)
-                usd_made = convert_usd(tickers, pair[1].id, symbol, arb_made, 'to')
-                print('buy on ' + pair[0].id + ' sell on ' + pair[1].id + ' ' + symbol + ' ' + str(arb_2) + ' end with $' + str(usd_made))
+    while True:
+        error = False
+        iteration += 1
+        end_time = time() + 15
+        for exchange in exchanges:
+            if error is False:
+                try:
+                    get_tickers(tickers, exchange.id, intra_pairs[exchange.id])
+                except Exception as e:
+                    error = True
+        for pair in exchange_pairs:
+            if error is False:
+                key = (pair[0].id, pair[1].id)
+                symbols = inter_pairs[key]
+                for symbol in symbols:
+                    if 'USD' in symbol:
+                        continue
+                    key1 = (pair[0].id, symbol)
+                    key2 = (pair[1].id, symbol)
+                    if tickers[key1]['ask'] == 0.0 or tickers[key1]['bid'] == 0.0 or tickers[key2]['ask'] == 0.0 or tickers[key2]['bid'] == 0.0:
+                        continue
+                    try:
+                        calc_arb(tickers, key1, key2, iteration)
+                        calc_arb(tickers, key2, key1, iteration)
+                    except Exception as e:
+                        error = True
+        if end_time > time():
+            sleep(end_time-time())
+
+
+
+def calc_arb(tickers, key1, key2, iteration):
+    ex_id1 = key1[0]
+    ex_id2 = key2[0]
+    symbol = key2[1]
+    arbitrage = (tickers[key1]['bid'] / tickers[key2]['ask']) * taker_fee(ex_id1) * taker_fee(ex_id2) - 1
+    if arbitrage > 0.5:
+        pass
+    elif arbitrage > 0:
+        cur_amt = convert_usd(tickers, ex_id2, symbol, 100, 'from')
+        arb_made = make_trade(tickers, ex_id2, ex_id1, symbol, cur_amt)
+        usd_made = convert_usd(tickers, ex_id2, symbol, arb_made, 'to')
+        if usd_made > 102.0:
+            with open('trades.log', 'a') as f:
+                f.write('[arbitrager]: ' + 'Iteration: ' + str(iteration) + ' Datetime: ' + strftime("%Y-%m-%d %H:%M:%S", gmtime(time())) +
+                        ' Buy: ' + ex_id2 + ' Sell: ' + ex_id1 + ' Pair: ' + symbol + ' ' + ' Profit: ' + str(usd_made - 100)[:4] + '%')
+                f.write('\n')
 
 
 def get_tickers(tickers, ex_id, symbols):
@@ -220,7 +244,6 @@ def get_fee(market, currency):
             if c[0] == currency:
                 return float(c[1].get('txFee'))
 
-    print("No market/currency found for", market, currency)
     return 0.01
 
 
