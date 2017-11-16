@@ -78,7 +78,7 @@ def init_exchanges():
     ids, exchanges = [], []
     with open('input/exchanges.txt', 'r') as f:
         for line in f:
-            ids.append(line)
+            ids.append(line.strip())
     for id in ids:
         exchange = getattr(ccxt, id)()
         exchange.load_markets()
