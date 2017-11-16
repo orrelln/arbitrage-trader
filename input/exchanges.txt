@@ -1,0 +1,6 @@
+bittrex
+bitfinex
+gdax
+poloniex
+kraken
+bitstamp
