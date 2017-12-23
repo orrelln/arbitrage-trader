@@ -14,6 +14,11 @@ def main():
         pickle.dump(inter_pairs, f, pickle.HIGHEST_PROTOCOL)
     with open('data/pairs/intra_pairs.p', 'wb+') as g:
         pickle.dump(intra_pairs, g, pickle.HIGHEST_PROTOCOL)
+    for exchange in exchanges:
+        for pair in intra_pairs[exchange.id]:
+            file_name = 'data/' + exchange.id + '/' + format_pair(pair) + '.json'
+            if not os.path.exists(file_name):
+                open(file_name, 'a').close()
 
 
 def format_pair(pair):
@@ -28,8 +33,17 @@ def create_directories(exchanges):
     if not os.path.exists('data'):
         os.mkdir('data')
         os.mkdir('data/pairs')
+    if not os.path.exists('locks'):
+        os.mkdir('locks')
     if not os.path.exists('trades'):
         os.mkdir('trades')
+    for exchange in exchanges:
+        path = 'data/' + exchange.id
+        path2 = 'logs/' + exchange.id + '.log'
+        if not os.path.exists(path):
+            os.mkdir(path)
+        if not os.path.exists(path2):
+            open(path2, 'a').close()
 
 
 def init_symbols(intra_pairs, inter_pairs, exchange_pairs):
@@ -78,7 +92,7 @@ def init_exchanges():
     ids, exchanges = [], []
     with open('input/exchanges.txt', 'r') as f:
         for line in f:
-            ids.append(line.strip())
+            ids.append(line)
     for id in ids:
         exchange = getattr(ccxt, id)()
         exchange.load_markets()

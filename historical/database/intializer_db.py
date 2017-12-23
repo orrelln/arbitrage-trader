@@ -1,24 +1,31 @@
-import ccxt
-import pickle
 import os
+import pickle
+from sys import argv
+from time import time, sleep
+
+import ccxt
+
+from historical.database.exception_helper import ExceptionHelper
 
 
 def main():
+    helper = ExceptionHelper(argv[0], None, argv[1])
     intra_pairs = {}
     inter_pairs = {}
-    exchanges = init_exchanges()
-    create_directories(exchanges)
-    exchange_pairs = all_pairs(exchanges)
-    init_symbols(intra_pairs, inter_pairs, exchange_pairs)
-    with open('data/pairs/inter_pairs.p', 'wb+') as f:
-        pickle.dump(inter_pairs, f, pickle.HIGHEST_PROTOCOL)
-    with open('data/pairs/intra_pairs.p', 'wb+') as g:
-        pickle.dump(intra_pairs, g, pickle.HIGHEST_PROTOCOL)
-    for exchange in exchanges:
-        for pair in intra_pairs[exchange.id]:
-            file_name = 'data/' + exchange.id + '/' + format_pair(pair) + '.json'
-            if not os.path.exists(file_name):
-                open(file_name, 'a').close()
+    create_directories()
+    while True:
+        end_time = time() + helper.sleep_time
+        helper.iteration += 1
+        exchanges = init_exchanges(helper)
+        exchange_pairs = all_pairs(exchanges)
+        init_symbols(intra_pairs, inter_pairs, exchange_pairs)
+        with open('data/pairs/inter_pairs.p', 'wb+') as f:
+            pickle.dump(inter_pairs, f, pickle.HIGHEST_PROTOCOL)
+        with open('data/pairs/intra_pairs.p', 'wb+') as g:
+            pickle.dump(intra_pairs, g, pickle.HIGHEST_PROTOCOL)
+        if end_time > time():
+            sleep(end_time - time())
+
 
 
 def format_pair(pair):
@@ -27,23 +34,17 @@ def format_pair(pair):
     return formatted_pair
 
 
-def create_directories(exchanges):
+def create_directories():
     if not os.path.exists('logs'):
         os.mkdir('logs')
     if not os.path.exists('data'):
         os.mkdir('data')
         os.mkdir('data/pairs')
-    if not os.path.exists('locks'):
-        os.mkdir('locks')
     if not os.path.exists('trades'):
         os.mkdir('trades')
-    for exchange in exchanges:
-        path = 'data/' + exchange.id
-        path2 = 'logs/' + exchange.id + '.log'
-        if not os.path.exists(path):
-            os.mkdir(path)
-        if not os.path.exists(path2):
-            open(path2, 'a').close()
+        os.mkdir('trades/best')
+        os.mkdir('trades/db')
+
 
 
 def init_symbols(intra_pairs, inter_pairs, exchange_pairs):
@@ -88,16 +89,26 @@ def all_pairs(l):
     return result
 
 
-def init_exchanges():
+def init_exchanges(helper):
     ids, exchanges = [], []
-    with open('input/exchanges', 'r') as f:
+    with open('input/exchanges.txt', 'r') as f:
         for line in f:
-            ids.append(line)
-    for id in ids:
-        exchange = getattr(ccxt, id)()
-        exchange.load_markets()
+            ids.append(line.strip())
+    for idx in ids:
+        exchange = init_exchange(helper, idx)
         exchanges.append(exchange)
     return exchanges
+
+
+def init_exchange(helper, idx):
+    while True:
+        try:
+            exchange = getattr(ccxt, idx)()
+            exchange.load_markets()
+            break
+        except Exception as e:
+            helper.record_exception(e)
+    return exchange
 
 
 def blacklist(sym, id):
