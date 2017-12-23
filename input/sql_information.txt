@@ -1,0 +1,5 @@
+user=b1kxsssu6ej4
+password=7sxgckl5ndg1wj7la8esqvxw
+host=mytestdb.cg7oi5h8vvxm.us-east-2.rds.amazonaws.com
+port=3306
+database=mytestdb

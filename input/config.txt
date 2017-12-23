@@ -1,0 +1,3 @@
+arbitrager_time=30
+trawler_time=30
+initializer_time=3600
