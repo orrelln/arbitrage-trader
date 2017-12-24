@@ -1,5 +1,6 @@
 import ccxt
 from collections import namedtuple
+from scripts.file_reader import read_exchange_keys
 
 
 class Initializer:
@@ -9,12 +10,14 @@ class Initializer:
     def __init__(self):
         self.intra_pairs = {}
         self.inter_pairs = {}
+        self.exchange_keys = {}
         self.exchanges = []
         self.exchange_pairs = []
 
     def initialize_exchanges(self):
-        """Obtains exchanges from cryptocurrency websites and sets up exchange pairs."""
+        """Obtains exchanges from cryptocurrency websites, sets up exchange pairs, and gets exchange keys"""
         self.exchanges, ids = [], []
+        self.exchange_keys = read_exchange_keys()
 
         with open('input/exchanges.txt', 'r') as f:
             for line in f:
@@ -23,12 +26,18 @@ class Initializer:
         for idx in ids:
             exchange = getattr(ccxt, idx)()
             exchange.load_markets()
+            if idx in self.exchange_keys:
+                ex_key = self.exchange_keys[idx]
+                exchange.apiKey = ex_key.apiKey
+                exchange.secret = ex_key.secret
             self.exchanges.append(exchange)
+
         self.exchange_pairs = self._create_exchange_pairs(self.exchanges)
 
     def initialize_pairs(self):
         """Initializes currency-pairs."""
         self.intra_pairs, self.inter_pairs = {}, {}
+
         for pair in self.exchange_pairs:
             exchange1 = pair.ex1.id
             exchange2 = pair.ex2.id
@@ -41,6 +50,7 @@ class Initializer:
                 self.intra_pairs[exchange1] = []
             if exchange2 not in self.intra_pairs:
                 self.intra_pairs[exchange2] = []
+
             for symbol in symbols:
                 if symbol not in self.intra_pairs[exchange1]:
                     self.intra_pairs[exchange1].append(symbol)
@@ -51,7 +61,12 @@ class Initializer:
         """Resets an exchange when errored out."""
         exchange = getattr(ccxt, idx)()
         exchange.load_markets()
+        if idx in self.exchange_keys:
+            ex_key = self.exchange_keys[idx]
+            exchange.apiKey = ex_key.apiKey
+            exchange.secret = ex_key.secret
         self.exchanges = [exchange if exchange.id == x.id else x for x in self.exchanges]
+        return exchange
 
     def _create_exchange_pairs(self, l):
         ExPairs = namedtuple('ExchangePairs', ['ex1', 'ex2'])
@@ -65,6 +80,7 @@ class Initializer:
         a = ex1.symbols
         b = ex2.symbols
         both_list = []
+
         for x in a:
             if self._blacklist(x, ex1.id):
                 continue
@@ -76,6 +92,7 @@ class Initializer:
                         break
                     both_list.append(x)
                     break
+
         return both_list
 
     def _blacklist(self, sym, id):

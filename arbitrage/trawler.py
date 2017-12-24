@@ -2,6 +2,8 @@ from datetime import datetime
 import mysql.connector
 from scripts.cd import cd
 from ccxt import NetworkError
+from scripts.file_reader import read_sql_information
+
 
 class Trawler:
     """
@@ -44,7 +46,8 @@ class Trawler:
                     iteration += 1
                 else:
                     break
-            self.tickers[s] = ind_ticker
+            if ind_ticker is not None:
+                self.tickers[s] = ind_ticker
 
     def _batch_tickers(self, timeout=3):
         iteration, tickers = 0, None
@@ -60,9 +63,10 @@ class Trawler:
         path = 'data/' + self.exchange.id + '.txt'
         with open(path, 'w') as f:
             for s in self.symbols:
-                string = self._convert_string(**self.tickers[s])
-                f.write(string)
-                f.write('\n')
+                if s in self.tickers:
+                    string = self._convert_string(**self.tickers[s])
+                    f.write(string)
+                    f.write('\n')
 
     def _convert_string(self, timestamp, symbol, high, low, bid, ask, baseVolume, quoteVolume, **kwargs):
         utc = datetime.utcfromtimestamp(int(round(timestamp / 1000)))
@@ -72,9 +76,5 @@ class Trawler:
         return string
 
     def _connect_to_database(self):
-        connector = {}
-        with open('input/sql_information.txt', 'r') as f:
-            for line in f:
-                (key, val) = line.strip().split('=')
-                connector[key] = val
+        connector = read_sql_information()
         return mysql.connector.connect(**connector)

@@ -1,0 +1,3 @@
+#format as shown below
+#EXCHANGE_NAME, API_KEY, SECRET_KEY
+

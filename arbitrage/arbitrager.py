@@ -1,6 +1,7 @@
 from collections import namedtuple
 import mysql.connector
 from scripts.trading_information import taker_fee
+from scripts.file_reader import read_sql_information
 
 
 class Arbitrager:
@@ -66,11 +67,7 @@ class Arbitrager:
         cnx.close()
 
     def _connect_to_database(self):
-        connector = {}
-        with open('input/sql_information.txt', 'r') as f:
-            for line in f:
-                (key, val) = line.strip().split('=')
-                connector[key] = val
+        connector = read_sql_information()
         return mysql.connector.connect(**connector)
 
     def _check_valid(self, symbol, key1, key2):

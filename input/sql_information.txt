@@ -1,3 +1,10 @@
+#format as shown below
+#user=MYSQL_USERNAME
+#password=MYSQL_PASSWORD
+#host=WHERE_DATABASE_IS_HOSTED
+#port=DATABASE_PORT
+#database=MYSQL_DATABASE_NAME
+
 user=b1kxsssu6ej4
 password=7sxgckl5ndg1wj7la8esqvxw
 host=mytestdb.cg7oi5h8vvxm.us-east-2.rds.amazonaws.com
