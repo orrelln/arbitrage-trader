@@ -3,16 +3,18 @@ import mysql.connector
 from scripts.cd import cd
 from ccxt import NetworkError
 from scripts.file_reader import read_sql_information
+import pickle
 
 
 class Trawler:
     """
     Handles api calls to the cryptocurrency servers and writes ticker information to database.
     """
-    def __init__(self, intra_pairs, exchange):
-        self.symbols = intra_pairs[exchange.id]
-        self.exchange = exchange
+    def __init__(self, exchange_id):
         self.tickers = {}
+
+        self.exchange = self.load_exchange(exchange_id)
+        self.symbols = self.load_intra_pairs()
 
     def get_tickers(self):
         """Obtains the tickers and writes them to text files for future use."""
@@ -35,6 +37,18 @@ class Trawler:
         cnx.commit()
         cursor.close()
         cnx.close()
+
+    def load_intra_pairs(self):
+        with open('input/intra_pairs.p', 'rb') as f:
+            intra_pairs = pickle.load(f)
+        return intra_pairs[self.exchange.id]
+
+    def load_exchange(self, idx):
+        with open('input/exchanges.p', 'rb') as f:
+            exchanges = pickle.load(f)
+        for exchange in exchanges:
+            if exchange.id == idx:
+                return exchange
 
     def _individual_tickers(self, timeout=3):
         for s in self.symbols:

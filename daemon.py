@@ -101,6 +101,7 @@ def create_objects():
 
     return initializer, arbitrager, trawlers
 
+
 # fix this function or change module to class
 def reset_trawler(exchange, trawlers, intra_pairs):
     current_trawler = None

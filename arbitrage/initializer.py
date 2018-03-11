@@ -1,6 +1,7 @@
 import ccxt
 from collections import namedtuple
 from scripts.file_reader import read_exchange_keys
+import pickle
 
 
 class Initializer:
@@ -15,9 +16,9 @@ class Initializer:
         self.exchange_pairs = []
 
     def initialize_exchanges(self):
-        """Obtains exchanges from cryptocurrency websites, sets up exchange pairs, and gets exchange keys"""
+        """Obtains exchanges from cryptocurrency websites, sets up exchange pairs, and gets exchange keys."""
         self.exchanges, ids = [], []
-        self.exchange_keys = read_exchange_keys()
+        # self.exchange_keys = read_exchange_keys()
 
         with open('input/exchanges.txt', 'r') as f:
             for line in f:
@@ -26,10 +27,10 @@ class Initializer:
         for idx in ids:
             exchange = getattr(ccxt, idx)()
             exchange.load_markets()
-            if idx in self.exchange_keys:
-                ex_key = self.exchange_keys[idx]
-                exchange.apiKey = ex_key.apiKey
-                exchange.secret = ex_key.secret
+            # if idx in self.exchange_keys:
+            #     ex_key = self.exchange_keys[idx]
+            #     exchange.apiKey = ex_key.apiKey
+            #     exchange.secret = ex_key.secret
             self.exchanges.append(exchange)
 
         self.exchange_pairs = self._create_exchange_pairs(self.exchanges)
@@ -67,6 +68,14 @@ class Initializer:
             exchange.secret = ex_key.secret
         self.exchanges = [exchange if exchange.id == x.id else x for x in self.exchanges]
         return exchange
+
+    def write_to_file(self):
+        with open('input/inter_pairs.p', 'wb+') as f:
+            pickle.dump(self.inter_pairs, f, pickle.HIGHEST_PROTOCOL)
+        with open('input/intra_pairs.p', 'wb+') as f:
+            pickle.dump(self.intra_pairs, f, pickle.HIGHEST_PROTOCOL)
+        with open('input/exchanges.p', 'wb+') as f:
+            pickle.dump(self.exchanges, f, pickle.HIGHEST_PROTOCOL)
 
     def _create_exchange_pairs(self, l):
         ExPairs = namedtuple('ExchangePairs', ['ex1', 'ex2'])
