@@ -1,9 +1,9 @@
 from datetime import datetime
 import mysql.connector
-from scripts.cd import cd
 from ccxt import NetworkError
 from scripts.file_reader import read_sql_information
 import pickle
+from scripts.initialize_exchange import initialize_exchange
 
 
 class Trawler:
@@ -13,7 +13,7 @@ class Trawler:
     def __init__(self, exchange_id):
         self.tickers = {}
 
-        self.exchange = self.load_exchange(exchange_id)
+        self.exchange = initialize_exchange(exchange_id)
         self.symbols = self.load_intra_pairs()
 
     def get_tickers(self):
@@ -28,11 +28,10 @@ class Trawler:
         """Obtains database information and writes text file to database."""
         cnx = self._connect_to_database()
         cursor = cnx.cursor()
-        file_path = self.exchange.id + '.txt'
-        with cd('/data'):
-            SQL = (
-                "LOAD DATA LOCAL INFILE '{}' INTO TABLE {} FIELDS TERMINATED BY ','").format(file_path, self.exchange.id)
-            cursor.execute(SQL)
+        file_path = 'data/' + self.exchange.id + '.txt'
+        SQL = (
+            "LOAD DATA LOCAL INFILE '{}' INTO TABLE {} FIELDS TERMINATED BY ','").format(file_path, self.exchange.id)
+        cursor.execute(SQL)
 
         cnx.commit()
         cursor.close()
@@ -44,10 +43,12 @@ class Trawler:
         return intra_pairs[self.exchange.id]
 
     def load_exchange(self, idx):
+        print(idx)
         with open('input/exchanges.p', 'rb') as f:
             exchanges = pickle.load(f)
         for exchange in exchanges:
-            if exchange.id == idx:
+            print(exchange.id)
+            if idx is exchange.id:
                 return exchange
 
     def _individual_tickers(self, timeout=3):

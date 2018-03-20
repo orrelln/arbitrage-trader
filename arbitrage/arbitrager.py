@@ -7,6 +7,7 @@ import pickle
 import ccxt
 import threading
 import operator
+from scripts.initialize_exchange import initialize_exchanges
 
 
 class Arbitrager:
@@ -22,20 +23,20 @@ class Arbitrager:
         self.percentages = {}
         self.orders = []
 
-        self.exchanges = self.load_exchanges()
+        self.exchanges = initialize_exchanges()
         self.exchange_pairs = self.load_exchange_pairs()
         self.inter_pairs = self.load_inter_pairs()
 
     def load_tickers(self):
         """Obtains database information for most recent tickers."""
-        for exchange_id in self.exchanges:
-            self._read_from_database(exchange_id)
+        for exchange in self.exchanges:
+            self._read_from_database(exchange.id)
 
     def ticker_percentages(self):
         """Calculates percentage differences in prices between exchanges."""
         for pair in self.exchange_pairs:
-            exchange_id1 = pair.ex1.id
-            exchange_id2 = pair.ex2.id
+            exchange_id1 = pair.ex1
+            exchange_id2 = pair.ex2
             inter_key = (exchange_id1, exchange_id2)
             symbols = self.inter_pairs[inter_key]
 
@@ -51,11 +52,20 @@ class Arbitrager:
 
                 # calculates percentage at ticker level and stores potential
                 pair1 = ((self.tickers[exchange_key2]['bid'] / self.tickers[exchange_key1]['ask'])
-                              * taker_fee(exchange_key1) * taker_fee(exchange_key2) - 1)
+                              * taker_fee(exchange_id1) * taker_fee(exchange_id2) - 1)
                 pair2 = ((self.tickers[exchange_key1]['bid'] / self.tickers[exchange_key2]['ask'])
-                              * taker_fee(exchange_key1) * taker_fee(exchange_key2) - 1)
+                              * taker_fee(exchange_id1) * taker_fee(exchange_id2) - 1)
                 self.percentages[self.Pair(exchange_id1, exchange_id2, symbol)] = pair1
                 self.percentages[self.Pair(exchange_id2, exchange_id1, symbol)] = pair2
+
+    def log_tickers(self, percentage_threshold=1):
+        """Logs tickers above percentage threshold."""
+        with open('tickers.log', 'a') as f:
+            for trading_pair in self.percentages:
+                if self.percentages[trading_pair] is not None:
+                    if self.percentages[trading_pair] > percentage_threshold:
+                        f.write('{}->{}\n'.format(trading_pair, self.percentages[trading_pair]))
+
 
     def order_book_profit(self, percentage_threshold=20):
         """Calculates maximum possible buying opportunity."""

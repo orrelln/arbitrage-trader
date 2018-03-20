@@ -5,7 +5,7 @@ def read_sql_information():
     connector = {}
     with open('input/sql_information.txt', 'r') as f:
         for line in f:
-            if line[0] == '#':
+            if line[0] == '#' or line[0] == ' ' or line[0] == '\n':
                 continue
             (key, val) = line.strip().split('=')
             connector[key] = val

@@ -3,7 +3,6 @@ from scripts.wrappers import indef_call
 from scripts.decorators import exception_catch
 
 
-
 def init_loop(initializer_obj):
     initializer_obj.initialize_exchanges()
     initializer_obj.initialize_pairs()

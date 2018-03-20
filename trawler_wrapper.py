@@ -13,13 +13,15 @@ def inner_loop(trawler_obj):
 
 @exception_catch('error')
 def trawler_loop(trawler_obj):
-    timed_call(inner_loop, 30, (1200 / 30), trawler_obj)
+    timed_call(inner_loop, 30, int(1200 / 30), trawler_obj)
     trawler_obj.exchange = trawler_obj.load_exchange(trawler_obj.exchange.id)
     trawler_obj.intra_pairs = trawler_obj.load_intra_pairs()
 
 
 def main():
-    trawler_obj = Trawler(sys.argv[1])
+    idx = sys.argv[1]
+    idx = idx.strip()
+    trawler_obj = Trawler(idx)
     indef_call(trawler_loop, 0, trawler_obj)
 
 

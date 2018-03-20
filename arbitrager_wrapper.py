@@ -5,17 +5,18 @@ from scripts.wrappers import indef_call, timed_call
 from scripts.decorators import exception_catch
 
 
-@exception_catch('error')
+#@exception_catch('error')
 def inner_loop(arbitrager_obj):
     arbitrager_obj.load_tickers()
     arbitrager_obj.ticker_percentages()
-    arbitrager_obj.order_book_profit()
-    arbitrager_obj.create_trader()
+    arbitrager_obj.log_tickers()
+    # arbitrager_obj.order_book_profit()
+    # arbitrager_obj.create_trader()
 
 
-@exception_catch('error')
+#@exception_catch('error')
 def arbitrager_loop(arbitrager_obj):
-    timed_call(inner_loop, 30, (1200 / 30), arbitrager_obj)
+    timed_call(inner_loop, 30, int(1200 / 30), arbitrager_obj)
     arbitrager_obj.exchanges = arbitrager_obj.load_exchanges()
     arbitrager_obj.exchange_pairs = arbitrager_obj.load_exchange_pairs()
     arbitrager_obj.inter_pairs = arbitrager_obj.load_inter_pairs()

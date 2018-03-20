@@ -1,6 +1,3 @@
-import poloniex
-
-
 def taker_fee(ex_id):
     return {
         'bitfinex': 0.998,
@@ -9,7 +6,9 @@ def taker_fee(ex_id):
         'gdax': 0.9975,
         'poloniex': 0.9975,
         'bitstamp': 0.9975,
-        'hitbtc2':  0.999
+        'hitbtc2':  0.999,
+        'binance': 0.999,
+        'kucoin': 0.999,
     }[ex_id]
 
 
@@ -62,7 +61,7 @@ def get_fee(market, currency):
         if currency == 'BCH':
             return 0.001
 
-    if market ==  'bitstamp':
+    if market == 'bitstamp':
         return 0
 
     if market == 'kraken':
@@ -135,12 +134,12 @@ def get_fee(market, currency):
         if currency == 'USDT':
             return 5.0
 
-    if market == 'poloniex':
-        p = poloniex.Poloniex()
-        currencies = p.returnCurrencies()
-
-        for c in currencies.items():
-            if c[0] == currency:
-                return float(c[1].get('txFee'))
+    # if market == 'poloniex':
+    #     p = poloniex.Poloniex()
+    #     currencies = p.returnCurrencies()
+    #
+    #     for c in currencies.items():
+    #         if c[0] == currency:
+    #             return float(c[1].get('txFee'))
 
     return 0.01
