@@ -13,6 +13,7 @@ class Trader:
     def __init__(self, exchanges, order):
         self.order = order
         self.exchanges = exchanges
+        self.amount = 0
 
     def perform_arbitrage(self):
         """Most basic configuration for performing arbitrage knowing specific order."""
@@ -29,7 +30,7 @@ class Trader:
     def sell(self, order):
         """Creates a sell order below market price for specified exchange and pair."""
         sell_exchange = self.exchanges[order.sell_ex]
-        sell_exchange.create_order(order.symbol, 'limit', 'sell', order.volume, order.sell_price * 0.90)
+        sell_exchange.create_order(order.symbol, 'limit', 'sell', self.amount, order.sell_price * 0.90)
 
     def send(self, order):
         """Retrieves address and balance for symbol, then sends it to another exchange."""
@@ -40,7 +41,10 @@ class Trader:
         currency = split_pair[0]
 
         address = self._fetch_address(receive_exchange, currency)
-        amount = self._fetch_balances(send_exchange, currency)
+
+        amount = 0
+        while amount < order.volume * .95:
+            amount = self._fetch_balances(send_exchange, currency)
 
         send_exchange.withdraw(currency, amount, address, tag="")
 
@@ -52,9 +56,8 @@ class Trader:
         currency = split_pair[0]
 
         og_amount = self._fetch_balances(receive_exchange, currency)
-        amount = 0
-        while amount <= og_amount:
-            amount = self._fetch_balances(receive_exchange, currency)
+        while self.amount <= og_amount:
+            self.amount = self._fetch_balances(receive_exchange, currency)
             sleep(5)
 
     def _fetch_balances(self, exchange, currency):
