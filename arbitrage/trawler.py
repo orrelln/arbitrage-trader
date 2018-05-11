@@ -2,7 +2,7 @@ from datetime import datetime
 import mysql.connector
 from ccxt import NetworkError
 from scripts.file_reader import read_sql_information
-import pickle
+import json
 from scripts.initialize_exchange import initialize_exchange
 
 
@@ -38,18 +38,22 @@ class Trawler:
         cnx.close()
 
     def load_intra_pairs(self):
-        with open('input/intra_pairs.p', 'rb') as f:
-            intra_pairs = pickle.load(f)
-        return intra_pairs[self.exchange.id]
+        """Grabs the most recent intra_pairs from the database."""
+        intra_pairs = {}
+        cnx = self._connect_to_database()
+        cursor = cnx.cursor()
 
-    def load_exchange(self, idx):
-        print(idx)
-        with open('input/exchanges.p', 'rb') as f:
-            exchanges = pickle.load(f)
-        for exchange in exchanges:
-            print(exchange.id)
-            if idx is exchange.id:
-                return exchange
+        SQL = "SELECT body FROM mytestdb.PAIRS WHERE label = 'intra'"
+        cursor.execute(SQL)
+
+        for body in cursor:
+            intra_pairs = json.loads(body[0])
+
+        cnx.commit()
+        cursor.close()
+        cnx.close()
+
+        return intra_pairs
 
     def _individual_tickers(self, timeout=3):
         for s in self.symbols:

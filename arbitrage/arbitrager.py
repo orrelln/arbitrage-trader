@@ -3,8 +3,7 @@ import mysql.connector
 from scripts.trading_information import taker_fee
 from scripts.file_reader import read_sql_information
 from arbitrage.trader import Trader
-import pickle
-import ccxt
+import json
 import threading
 import operator
 from scripts.initialize_exchange import initialize_exchanges
@@ -24,6 +23,11 @@ class Arbitrager:
         self.orders = []
 
         self.exchanges = initialize_exchanges()
+        self.exchanges_d = {}
+
+        for exchange in self.exchanges:
+            self.exchanges_d[exchange.id] = exchange
+
         self.exchange_pairs = self.load_exchange_pairs()
         self.inter_pairs = self.load_inter_pairs()
 
@@ -37,7 +41,7 @@ class Arbitrager:
         for pair in self.exchange_pairs:
             exchange_id1 = pair.ex1
             exchange_id2 = pair.ex2
-            inter_key = (exchange_id1, exchange_id2)
+            inter_key = "{}/{}".format(exchange_id1, exchange_id2)
             symbols = self.inter_pairs[inter_key]
 
             for symbol in symbols:
@@ -50,11 +54,18 @@ class Arbitrager:
                     self.percentages[self.Pair(exchange_id2, exchange_id1, symbol)] = None
                     continue
 
+                if (self._check_withdraw(exchange_id1, symbol) is False
+                        or self._check_withdraw(exchange_id1, symbol) is False):
+                    self.percentages[self.Pair(exchange_id1, exchange_id2, symbol)] = None
+                    self.percentages[self.Pair(exchange_id2, exchange_id1, symbol)] = None
+                    continue
+
+
                 # calculates percentage at ticker level and stores potential
                 pair1 = ((self.tickers[exchange_key2]['bid'] / self.tickers[exchange_key1]['ask'])
-                              * taker_fee(exchange_id1) * taker_fee(exchange_id2) - 1)
+                              * taker_fee(exchange_id1) * taker_fee(exchange_id2) - 1) * 100
                 pair2 = ((self.tickers[exchange_key1]['bid'] / self.tickers[exchange_key2]['ask'])
-                              * taker_fee(exchange_id1) * taker_fee(exchange_id2) - 1)
+                              * taker_fee(exchange_id1) * taker_fee(exchange_id2) - 1) * 100
                 self.percentages[self.Pair(exchange_id1, exchange_id2, symbol)] = pair1
                 self.percentages[self.Pair(exchange_id2, exchange_id1, symbol)] = pair2
 
@@ -66,7 +77,6 @@ class Arbitrager:
                     if self.percentages[trading_pair] > percentage_threshold:
                         f.write('{}->{}\n'.format(trading_pair, self.percentages[trading_pair]))
 
-
     def order_book_profit(self, percentage_threshold=20):
         """Calculates maximum possible buying opportunity."""
         order_books = {}
@@ -75,8 +85,8 @@ class Arbitrager:
             if self.percentages[trading_pair] < percentage_threshold:
                 continue
 
-            buy_exchange = self.exchanges[trading_pair.buy_ex]
-            sell_exchange = self.exchanges[trading_pair.sell_ex]
+            buy_exchange = self.exchanges_d[trading_pair.buy_ex]
+            sell_exchange = self.exchanges_d[trading_pair.sell_ex]
             buy_pair = self.IdSymbol(trading_pair.buy_ex, trading_pair.symbol)
             sell_pair = self.IdSymbol(trading_pair.sell_ex, trading_pair.symbol)
 
@@ -96,16 +106,23 @@ class Arbitrager:
             trade_thr.start()
         self.orders = []
 
-
     def load_inter_pairs(self):
-        with open('input/inter_pairs.p', 'rb') as f:
-            inter_pairs = pickle.load(f)
-        return inter_pairs
+        """Grabs the most recent inter_pairs from the database."""
+        inter_pairs = {}
+        cnx = self._connect_to_database()
+        cursor = cnx.cursor()
 
-    def load_exchanges(self):
-        with open('input/exchanges.p', 'rb') as f:
-            exchanges = pickle.load(f)
-        return exchanges
+        SQL = "SELECT body FROM mytestdb.PAIRS WHERE label = 'inter'"
+        cursor.execute(SQL)
+
+        for body in cursor:
+            inter_pairs = json.loads(body[0])
+
+        cnx.commit()
+        cursor.close()
+        cnx.close()
+
+        return inter_pairs
 
     def load_exchange_pairs(self):
         exchange_ids = [exchange.id for exchange in self.exchanges]
@@ -134,7 +151,7 @@ class Arbitrager:
             if sell_volume > buy_volume:
                 continue
             elif buy_volume > sell_volume:
-                profit = sell_volume * (sell_price  * taker_fee(sell_pair.exchange_id) -
+                profit = sell_volume * (sell_price * taker_fee(sell_pair.exchange_id) -
                                         buy_price / taker_fee(buy_pair.exchange_id))
                 return self.Order(buy_pair.exchange_id, sell_pair.exchange_id, buy_pair.symbol, buy_price, sell_price,
                                   sell_volume, profit)
@@ -176,3 +193,8 @@ class Arbitrager:
                 self.tickers[key2]['ask'] == 0.0 or self.tickers[key2]['bid'] == 0.0):
             return False
         return True
+
+    def _check_withdraw(self, id, symbol):
+        exchange = self.exchanges_d[id]
+        if exchange.currencies[symbol]['active']:
+            return True

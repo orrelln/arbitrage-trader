@@ -4,8 +4,7 @@ from time import sleep
 
 
 class Trader:
-    """
-    WIP
+    """`
     Performs inter-exchange trades, tracks information for wallets, and performs balancing mechanisms
     """
     Order = namedtuple('Order', ['buy_ex', 'sell_ex', 'symbol', 'buy_price', 'sell_price', 'volume'])

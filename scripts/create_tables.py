@@ -37,3 +37,19 @@ def create_tables(ids, connector):
     cursor.close()
     cnx.close()
 
+
+def create_pairs_tables(connector):
+    SQL = (
+        "CREATE TABLE `PAIRS` ("
+        "   `label` varchar(5) NOT NULL,"
+        "   `body` text NOT NULL,"
+        "   PRIMARY KEY (`label`)"
+        ")  ENGINE=InnoDB")
+
+    cnx = mysql.connector.connect(**connector)
+    cursor = cnx.cursor()
+    cursor.execute(SQL)
+
+    cursor.close()
+    cnx.close()
+

@@ -1,6 +1,8 @@
 import ccxt
+import json
 from collections import namedtuple
-from scripts.file_reader import read_exchange_keys
+import mysql.connector
+from scripts.file_reader import read_sql_information
 import pickle
 from scripts.initialize_exchange import initialize_exchanges
 
@@ -30,7 +32,7 @@ class Initializer:
             exchange2 = pair.ex2.id
 
             symbols = self._get_common_symbols(pair.ex1, pair.ex2)
-            key = (exchange1, exchange2)
+            key = "{}/{}".format(exchange1, exchange2)
             self.inter_pairs[key] = symbols
 
             if exchange1 not in self.intra_pairs:
@@ -60,6 +62,22 @@ class Initializer:
             pickle.dump(self.inter_pairs, f, pickle.HIGHEST_PROTOCOL)
         with open('input/intra_pairs.p', 'wb+') as f:
             pickle.dump(self.intra_pairs, f, pickle.HIGHEST_PROTOCOL)
+
+    def write_to_database(self):
+        """Obtains database information and writes pair files to database."""
+        cnx = self._connect_to_database()
+        cursor = cnx.cursor()
+
+        query = "REPLACE INTO PAIRS (label, body) VALUES (%s, %s)"
+        inter_values = ('inter', json.dumps(self.inter_pairs))
+        intra_values = ('intra', json.dumps(self.intra_pairs))
+
+        cursor.execute(query, inter_values)
+        cursor.execute(query, intra_values)
+
+        cnx.commit()
+        cursor.close()
+        cnx.close()
 
     def _create_exchange_pairs(self, l):
         ExPairs = namedtuple('ExchangePairs', ['ex1', 'ex2'])
@@ -94,3 +112,7 @@ class Initializer:
             'bittrex:BTS/BTC': True,
             'poloniex:XVC/BTC': True
         }.get(str, False)
+
+    def _connect_to_database(self):
+        connector = read_sql_information()
+        return mysql.connector.connect(**connector)

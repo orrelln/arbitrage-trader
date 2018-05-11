@@ -1,12 +1,11 @@
 from arbitrage.initializer import Initializer
 from scripts.wrappers import indef_call
-from scripts.decorators import exception_catch
 
 
 def init_loop(initializer_obj):
     initializer_obj.initialize_exchanges()
     initializer_obj.initialize_pairs()
-    initializer_obj.write_to_file()
+    initializer_obj.write_to_database()
 
 
 def main():
